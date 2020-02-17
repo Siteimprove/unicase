@@ -207,7 +207,9 @@ impl<S: AsRef<str>> UniCase<S> {
     pub fn ends_with(&self, other: &Self) -> bool {
         match (&self.0, &other.0) {
             (Encoding::Unicode(ref s1), Encoding::Unicode(ref s2)) => s1.ends_with(s2),
-            _ => unimplemented!()
+            (Encoding::Ascii(ref s1), Encoding::Ascii(ref s2)) => s1.ends_with(s2),
+            (Encoding::Unicode(ref s1), Encoding::Ascii(ref s2)) => s1.ends_with(&Unicode(s2.0.as_ref())),
+            (Encoding::Ascii(ref s1), Encoding::Unicode(ref s2)) => Unicode(s1.0.as_ref()).ends_with(s2)
         }
     }
 }
@@ -462,6 +464,13 @@ mod tests {
         let a = UniCase::new("FAR");
         let b = UniCase::new("far");
         assert!(a.starts_with(&b));
+    }
+
+    #[test]
+    fn test_endswith_unicase_ascii_unicode() {
+        let a = UniCase::new("FAR");
+        let b = UniCase::new("far");
+        assert!(a.ends_with(&b));
     }
 
     #[cfg(feature = "nightly")]
