@@ -194,6 +194,22 @@ impl<S> UniCase<S> {
     }
 }
 
+impl<S: AsRef<str>> UniCase<S> {
+    pub fn starts_with(&self, other: &Self) -> bool {
+        match (&self.0, &other.0) {
+            (Encoding::Unicode(ref s1), Encoding::Unicode(ref s2)) => s1.starts_with(s2),
+            _ => unimplemented!()
+        }
+    }
+
+    pub fn ends_with(&self, other: &Self) -> bool {
+        match (&self.0, &other.0) {
+            (Encoding::Unicode(ref s1), Encoding::Unicode(ref s2)) => s1.ends_with(s2),
+            _ => unimplemented!()
+        }
+    }
+}
+
 impl<S> Deref for UniCase<S> {
     type Target = S;
     #[inline]
@@ -388,6 +404,48 @@ mod tests {
 
         assert!(a != b);
         assert!(b != a);
+    }
+
+    #[test]
+    fn test_sw_unicode() {
+        let a = UniCase::unicode("foo");
+        let b = UniCase::unicode("f");
+        assert!(a.starts_with(&b));
+    }
+
+    #[test]
+    fn test_sw_unicode_neg() {
+        let a = UniCase::unicode("foo");
+        let b = UniCase::unicode("o");
+        assert!(!a.starts_with(&b));
+    }
+
+    #[test]
+    fn test_sw_unicode_longer_pattern() {
+        let a = UniCase::unicode("foo");
+        let b = UniCase::unicode("foooo");
+        assert!(!a.starts_with(&b));
+    }
+
+    #[test]
+    fn test_ew_unicode() {
+        let a = UniCase::unicode("foo");
+        let b = UniCase::unicode("o");
+        assert!(a.ends_with(&b));
+    }
+
+    #[test]
+    fn test_ew_unicode_neg() {
+        let a = UniCase::unicode("foo");
+        let b = UniCase::unicode("f");
+        assert!(!a.ends_with(&b));
+    }
+
+    #[test]
+    fn test_ew_unicode_longer_pattern() {
+        let a = UniCase::unicode("foo");
+        let b = UniCase::unicode("ooof");
+        assert!(!a.ends_with(&b));
     }
 
     #[cfg(feature = "nightly")]

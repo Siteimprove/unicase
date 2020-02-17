@@ -8,28 +8,47 @@ mod map;
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Unicode<S>(pub S);
 
+impl<S: AsRef<str>> Unicode<S> {
+    #[allow(unused)]
+    pub fn starts_with<S2 : AsRef<str>>(&self, pattern: &Unicode<S2>) -> bool {
+        let mut left = self.0.as_ref().chars().flat_map(lookup);
+        let mut right = pattern.0.as_ref().chars().flat_map(lookup);
+        compare_iters(&mut left, &mut right, true)
+    }
+
+    #[allow(unused)]
+    pub fn ends_with<S2 : AsRef<str>>(&self, pattern: &Unicode<S2>) -> bool {
+        let mut left = self.0.as_ref().chars().rev().flat_map(lookup);
+        let mut right = pattern.0.as_ref().chars().rev().flat_map(lookup);
+        compare_iters(&mut left, &mut right, true)
+    }
+}
+
+#[inline]
+fn compare_iters<I: Iterator<Item=char>>(left: &mut I, right: &mut I, if_right_empty: bool) -> bool {
+    loop {
+        let x = match left.next() {
+            None => return right.next().is_none(),
+            Some(val) => val,
+        };
+
+        let y = match right.next() {
+            None => return if_right_empty,
+            Some(val) => val,
+        };
+
+        if x != y {
+            return false;
+        }
+    }
+}
+
 impl<S1: AsRef<str>, S2: AsRef<str>> PartialEq<Unicode<S2>> for Unicode<S1> {
     #[inline]
     fn eq(&self, other: &Unicode<S2>) -> bool {
         let mut left = self.0.as_ref().chars().flat_map(lookup);
         let mut right = other.0.as_ref().chars().flat_map(lookup);
-
-        // inline Iterator::eq since not added until Rust 1.5
-        loop {
-            let x = match left.next() {
-                None => return right.next().is_none(),
-                Some(val) => val,
-            };
-
-            let y = match right.next() {
-                None => return false,
-                Some(val) => val,
-            };
-
-            if x != y {
-                return false;
-            }
-        }
+        compare_iters(&mut left, &mut right, false)
     }
 }
 
