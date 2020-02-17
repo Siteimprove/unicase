@@ -102,6 +102,16 @@ pub fn eq_ascii<S: AsRef<str> + ?Sized>(left: &S, right: &S) -> bool {
     Ascii(left) == Ascii(right)
 }
 
+#[inline]
+pub fn starts_with<S: AsRef<str> + ?Sized>(left: &S, right: &S) -> bool {
+    UniCase::new(left).starts_with(&UniCase::new(right))
+}
+
+#[inline]
+pub fn ends_with<S: AsRef<str> + ?Sized>(left: &S, right: &S) -> bool {
+    UniCase::new(left).ends_with(&UniCase::new(right))
+}
+
 #[derive(Clone, Copy, Debug)]
 enum Encoding<S> {
     Ascii(Ascii<S>),
