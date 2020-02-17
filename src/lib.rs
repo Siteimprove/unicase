@@ -198,7 +198,9 @@ impl<S: AsRef<str>> UniCase<S> {
     pub fn starts_with(&self, other: &Self) -> bool {
         match (&self.0, &other.0) {
             (Encoding::Unicode(ref s1), Encoding::Unicode(ref s2)) => s1.starts_with(s2),
-            _ => unimplemented!()
+            (Encoding::Ascii(ref s1), Encoding::Ascii(ref s2)) => s1.starts_with(s2),
+            (Encoding::Unicode(ref s1), Encoding::Ascii(ref s2)) => s1.starts_with(&Unicode(s2.0.as_ref())),
+            (Encoding::Ascii(ref s1), Encoding::Unicode(ref s2)) => Unicode(s1.0.as_ref()).starts_with(s2)
         }
     }
 
@@ -407,45 +409,59 @@ mod tests {
     }
 
     #[test]
-    fn test_sw_unicode() {
-        let a = UniCase::unicode("foo");
-        let b = UniCase::unicode("f");
+    fn test_startswith_unicode() {
+        let a = UniCase::unicode("æble");
+        let b = UniCase::unicode("Æ");
         assert!(a.starts_with(&b));
     }
 
     #[test]
-    fn test_sw_unicode_neg() {
-        let a = UniCase::unicode("foo");
-        let b = UniCase::unicode("o");
+    fn test_startswith_unicode_neg() {
+        let a = UniCase::unicode("fæ");
+        let b = UniCase::unicode("Æ");
         assert!(!a.starts_with(&b));
     }
 
     #[test]
-    fn test_sw_unicode_longer_pattern() {
-        let a = UniCase::unicode("foo");
-        let b = UniCase::unicode("foooo");
+    fn test_startswith_unicode_longer_pattern() {
+        let a = UniCase::unicode("fÆ");
+        let b = UniCase::unicode("fææææ");
         assert!(!a.starts_with(&b));
     }
 
     #[test]
-    fn test_ew_unicode() {
-        let a = UniCase::unicode("foo");
-        let b = UniCase::unicode("o");
+    fn test_endswith_unicode() {
+        let a = UniCase::unicode("fæ");
+        let b = UniCase::unicode("Æ");
         assert!(a.ends_with(&b));
     }
 
     #[test]
-    fn test_ew_unicode_neg() {
-        let a = UniCase::unicode("foo");
-        let b = UniCase::unicode("f");
+    fn test_endswith_unicode_neg() {
+        let a = UniCase::unicode("fæ");
+        let b = UniCase::unicode("F");
         assert!(!a.ends_with(&b));
     }
 
     #[test]
-    fn test_ew_unicode_longer_pattern() {
-        let a = UniCase::unicode("foo");
-        let b = UniCase::unicode("ooof");
+    fn test_endswith_unicode_longer_pattern() {
+        let a = UniCase::unicode("FÅR");
+        let b = UniCase::unicode("fååår");
         assert!(!a.ends_with(&b));
+    }
+
+    #[test]
+    fn test_startswith_unicase_unicode() {
+        let a = UniCase::new("FÅR");
+        let b = UniCase::new("får");
+        assert!(a.starts_with(&b));
+    }
+
+    #[test]
+    fn test_startswith_unicase_ascii_unicode() {
+        let a = UniCase::new("FAR");
+        let b = UniCase::new("far");
+        assert!(a.starts_with(&b));
     }
 
     #[cfg(feature = "nightly")]

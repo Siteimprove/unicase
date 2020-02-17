@@ -43,6 +43,21 @@ impl<S> Ascii<S> {
     }
 }
 
+impl<S: AsRef<str>> Ascii<S> {
+    pub fn starts_with<S2 : AsRef<str>>(&self, pattern: &Ascii<S2>) -> bool {
+        let mut left = self.0.as_ref().chars().map(to_lower_ascii);
+        let mut right = pattern.0.as_ref().chars().map(to_lower_ascii);
+        compare_iters(&mut left, &mut right, true)
+    }
+
+    #[allow(unused)]
+    pub fn ends_with<S2 : AsRef<str>>(&self, pattern: &Ascii<S2>) -> bool {
+        let mut left = self.0.as_ref().chars().rev().map(to_lower_ascii);
+        let mut right = pattern.0.as_ref().chars().rev().map(to_lower_ascii);
+        compare_iters(&mut left, &mut right, true)
+    }
+}
+
 impl<S> Deref for Ascii<S> {
     type Target = S;
     #[inline]
@@ -70,8 +85,8 @@ impl<T: AsRef<str>> PartialOrd for Ascii<T> {
 impl<T: AsRef<str>> Ord for Ascii<T> {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
-        let self_chars = self.as_ref().chars().map(|c| c.to_ascii_lowercase());
-        let other_chars = other.as_ref().chars().map(|c| c.to_ascii_lowercase());
+        let self_chars = self.as_ref().chars().map(to_lower_ascii);
+        let other_chars = other.as_ref().chars().map(to_lower_ascii);
         self_chars.cmp(other_chars)
     }
 }
@@ -128,6 +143,30 @@ impl<S: AsRef<str>> Hash for Ascii<S> {
             hasher.write_u8(byte);
         }
     }
+}
+
+#[inline]
+fn compare_iters<I: Iterator<Item=char>>(left: &mut I, right: &mut I, if_right_empty: bool) -> bool {
+    loop {
+        let x = match left.next() {
+            None => return right.next().is_none(),
+            Some(val) => val,
+        };
+
+        let y = match right.next() {
+            None => return if_right_empty,
+            Some(val) => val,
+        };
+
+        if x != y {
+            return false;
+        }
+    }
+}
+
+#[inline]
+fn to_lower_ascii(orig: char) -> char {
+    orig.to_ascii_lowercase()
 }
 
 #[cfg(test)]
