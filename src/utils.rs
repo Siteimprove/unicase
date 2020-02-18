@@ -31,13 +31,14 @@ where F1 : Fn(usize) -> I, F2 : Fn(usize) -> I {
         let mut ix = 0;
 
         loop {
-            let x = match left.next() {
-                None => return right.next().is_none(),
+            let y = match right.next() {
+                None => return true, // end of needle -> we have found a match
                 Some(c) => c
             };
-            
-            let y = match right.next() {
-                None => return true,
+
+
+            let x = match left.next() {
+                None => return false, // end of haystack -> we still have some needle left
                 Some(c) => c
             };
 

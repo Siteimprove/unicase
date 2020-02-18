@@ -547,6 +547,13 @@ mod tests {
         assert!(a.ends_with(&b));
     }
 
+    #[test]
+    fn test_contains_finds_suffix() {
+        let a = UniCase::unicode("ccbaab");
+        let b = UniCase::unicode("baab");
+        assert!(a.contains(&b));
+    }
+
     #[cfg(feature = "nightly")]
     #[bench]
     fn bench_unicode_contains(b: &mut ::test::Bencher) {
