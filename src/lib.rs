@@ -113,6 +113,11 @@ pub fn ends_with<S: AsRef<str> + ?Sized>(left: &S, right: &S) -> bool {
     UniCase::new(left).ends_with(&UniCase::new(right))
 }
 
+#[inline]
+pub fn contains<S: AsRef<str> + ?Sized>(left: &S, right: &S) -> bool {
+    UniCase::new(left).contains(&UniCase::new(right))
+}
+
 #[derive(Clone, Copy, Debug)]
 enum Encoding<S> {
     Ascii(Ascii<S>),
@@ -508,6 +513,20 @@ mod tests {
     }
 
     #[test]
+    fn test_contains_unicase_full_match() {
+        let x = UniCase::new("foobar");
+        let y = UniCase::new("FOOBAR");
+        assert!(x.contains(&y));
+    }
+
+    #[test]
+    fn test_contains_unicase() {
+        let x = UniCase::new("foobar");
+        let y = UniCase::new("ob");
+        assert!(x.contains(&y));
+    }
+
+    #[test]
     fn test_startswith_unicase_unicode() {
         let a = UniCase::new("FÅR");
         let b = UniCase::new("får");
@@ -555,6 +574,15 @@ mod tests {
         let x = UniCase::new("foobar");
         let y = UniCase::new("FOOBAR");
         b.iter(|| assert_eq!(x, y));
+    }
+
+    #[cfg(feature = "nightly")]
+    #[bench]
+    fn bench_ascii_contains(b: &mut ::test::Bencher) {
+        b.bytes = b"foobar".len() as u64;
+        let x = UniCase::new("foobar");
+        let y = UniCase::new("FOOBAR");
+        b.iter(|| x.contains(&y));
     }
 
     #[cfg(feature = "nightly")]
