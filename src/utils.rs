@@ -32,7 +32,7 @@ where F1 : Fn(usize) -> I, F2 : Fn(usize) -> I {
 
         loop {
             let x = match left.next() {
-                None => return false,
+                None => return right.next().is_none(),
                 Some(c) => c
             };
             
