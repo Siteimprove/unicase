@@ -10,6 +10,7 @@ use core::str::FromStr;
 use std::ascii::AsciiExt;
 
 use super::{Ascii, Encoding, UniCase};
+use super::utils::{contains_kmp, compare_iters};
 
 impl<S> Ascii<S> {
     #[inline]
@@ -55,6 +56,13 @@ impl<S: AsRef<str>> Ascii<S> {
         let mut left = self.0.as_ref().chars().rev().map(to_lower_ascii);
         let mut right = pattern.0.as_ref().chars().rev().map(to_lower_ascii);
         compare_iters(&mut left, &mut right, true)
+    }
+
+    #[allow(unused)]
+    pub fn contains<S2 : AsRef<str>>(&self, pattern: &Ascii<S2>) -> bool {
+        contains_kmp(
+            |s| self.0.as_ref().chars().map(to_lower_ascii).skip(s), 
+            |s| pattern.0.as_ref().chars().map(to_lower_ascii).skip(s))
     }
 }
 
@@ -141,25 +149,6 @@ impl<S: AsRef<str>> Hash for Ascii<S> {
     fn hash<H: Hasher>(&self, hasher: &mut H) {
         for byte in self.as_ref().bytes().map(|b| b.to_ascii_lowercase()) {
             hasher.write_u8(byte);
-        }
-    }
-}
-
-#[inline]
-fn compare_iters<I: Iterator<Item=char>>(left: &mut I, right: &mut I, if_right_empty: bool) -> bool {
-    loop {
-        let x = match left.next() {
-            None => return right.next().is_none(),
-            Some(val) => val,
-        };
-
-        let y = match right.next() {
-            None => return if_right_empty,
-            Some(val) => val,
-        };
-
-        if x != y {
-            return false;
         }
     }
 }

@@ -74,6 +74,7 @@ use self::unicode::Unicode;
 
 mod ascii;
 mod unicode;
+mod utils;
 
 /// Case Insensitive wrapper of strings.
 #[derive(Clone, Copy)]
@@ -220,6 +221,15 @@ impl<S: AsRef<str>> UniCase<S> {
             (Encoding::Ascii(ref s1), Encoding::Ascii(ref s2)) => s1.ends_with(s2),
             (Encoding::Unicode(ref s1), Encoding::Ascii(ref s2)) => s1.ends_with(&Unicode(s2.0.as_ref())),
             (Encoding::Ascii(ref s1), Encoding::Unicode(ref s2)) => Unicode(s1.0.as_ref()).ends_with(s2)
+        }
+    }
+
+    pub fn contains(&self, other: &Self) -> bool {
+        match (&self.0, &other.0) {
+            (Encoding::Unicode(ref s1), Encoding::Unicode(ref s2)) => s1.contains(s2),
+            (Encoding::Ascii(ref s1), Encoding::Ascii(ref s2)) => s1.contains(s2),
+            (Encoding::Unicode(ref s1), Encoding::Ascii(ref s2)) => s1.contains(&Unicode(s2.0.as_ref())),
+            (Encoding::Ascii(ref s1), Encoding::Unicode(ref s2)) => Unicode(s1.0.as_ref()).contains(s2)
         }
     }
 }
@@ -463,6 +473,41 @@ mod tests {
     }
 
     #[test]
+    fn test_contains_unicode() {
+        let a = UniCase::unicode("foobar");
+        let b = UniCase::unicode("OBA");
+        assert!(a.contains(&b));
+    }
+
+    #[test]
+    fn test_contains_unicode_overlapping_pattern() {
+        let a = UniCase::unicode("mmome");
+        let b = UniCase::unicode("mOm");
+        assert!(a.contains(&b));
+    }
+
+    #[test]
+    fn test_contains_unicode_neg() {
+        let a = UniCase::unicode("foobar");
+        let b = UniCase::unicode("OBAN");
+        assert!(!a.contains(&b));
+    }
+
+    #[test]
+    fn test_contains_unicode_long_pattern() {
+        let a = UniCase::unicode("foobar");
+        let b = UniCase::unicode("fooooooooooooooooooooooooooooooooooooo");
+        assert!(!a.contains(&b));
+    }
+
+    #[test]
+    fn test_contains_ascii() {
+        let a = UniCase::ascii("mmome");
+        let b = UniCase::ascii("mOm");
+        assert!(a.contains(&b));
+    }
+
+    #[test]
     fn test_startswith_unicase_unicode() {
         let a = UniCase::new("FÅR");
         let b = UniCase::new("får");
@@ -481,6 +526,26 @@ mod tests {
         let a = UniCase::new("FAR");
         let b = UniCase::new("far");
         assert!(a.ends_with(&b));
+    }
+
+    #[cfg(feature = "nightly")]
+    #[bench]
+    fn bench_unicode_contains(b: &mut ::test::Bencher) {
+        let x = UniCase::unicode("foobarfoxydog");
+        let y = UniCase::unicode("arfoxyd");
+        b.iter(|| assert!(x.contains(&y)));
+    }
+
+    #[cfg(feature = "nightly")]
+    #[bench]
+    fn bench_unicode_contains_worst_case(b: &mut ::test::Bencher) {
+        let input = String::from_utf8(vec![b'X'; 200]).unwrap();
+        b.bytes = input.len() as u64;
+        let mut pattern = input.clone();
+        pattern.push('y');
+        let x = UniCase::unicode(&input);
+        let y = UniCase::unicode(&pattern);
+        b.iter(|| assert!(!x.contains(&y)));
     }
 
     #[cfg(feature = "nightly")]

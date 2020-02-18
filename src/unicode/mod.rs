@@ -3,6 +3,7 @@ use core::cmp::Ordering;
 use core::hash::{Hash, Hasher};
 
 use self::map::lookup;
+use super::utils::{contains_kmp, compare_iters};
 mod map;
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -22,24 +23,13 @@ impl<S: AsRef<str>> Unicode<S> {
         let mut right = pattern.0.as_ref().chars().rev().flat_map(lookup);
         compare_iters(&mut left, &mut right, true)
     }
-}
 
-#[inline]
-fn compare_iters<I: Iterator<Item=char>>(left: &mut I, right: &mut I, if_right_empty: bool) -> bool {
-    loop {
-        let x = match left.next() {
-            None => return right.next().is_none(),
-            Some(val) => val,
-        };
-
-        let y = match right.next() {
-            None => return if_right_empty,
-            Some(val) => val,
-        };
-
-        if x != y {
-            return false;
-        }
+    #[allow(unused)]
+    pub fn contains<S2 : AsRef<str>>(&self, pattern: &Unicode<S2>) -> bool {
+        contains_kmp(
+            |s| self.0.as_ref().chars().flat_map(lookup).skip(s),
+            |s| pattern.0.as_ref().chars().flat_map(lookup).skip(s)
+        )
     }
 }
 
@@ -202,6 +192,13 @@ mod tests {
         eq!("ﬂour", "flour");
         eq!("Maße", "MASSE");
         eq!("ᾲ στο διάολο", "ὰι στο διάολο");
+    }
+
+    #[cfg(feature = "nightly")]
+    #[bench]
+    fn bench_unicode_eq(b: &mut ::test::Bencher) {
+        b.bytes = b"foobar".len() as u64;
+        b.iter(|| assert_eq!(Unicode("foobar"), Unicode("FOOBAR")));
     }
 
     #[cfg(feature = "nightly")]
