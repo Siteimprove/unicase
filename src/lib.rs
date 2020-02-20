@@ -554,6 +554,13 @@ mod tests {
         assert!(a.contains(&b));
     }
 
+    #[test]
+    fn test_contains_mfla() {
+        let a = UniCase::unicode("abababc");
+        let b = UniCase::unicode("ababc");
+        assert!(a.contains(&b));
+    }
+
     #[cfg(feature = "nightly")]
     #[bench]
     fn bench_unicode_contains(b: &mut ::test::Bencher) {
