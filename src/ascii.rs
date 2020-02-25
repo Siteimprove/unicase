@@ -60,9 +60,9 @@ impl<S: AsRef<str>> Ascii<S> {
 
     #[allow(unused)]
     pub fn contains<S2 : AsRef<str>>(&self, pattern: &Ascii<S2>) -> bool {
-        contains_kmp(
-            |s| self.0.as_ref().chars().map(to_lower_ascii).skip(s), 
-            |s| pattern.0.as_ref().chars().map(to_lower_ascii).skip(s))
+        let left = self.0.as_ref().chars().map(to_lower_ascii);
+        let right = pattern.0.as_ref().chars().map(to_lower_ascii);
+        contains_kmp(left, right)
     }
 }
 

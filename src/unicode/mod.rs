@@ -26,10 +26,9 @@ impl<S: AsRef<str>> Unicode<S> {
 
     #[allow(unused)]
     pub fn contains<S2 : AsRef<str>>(&self, pattern: &Unicode<S2>) -> bool {
-        contains_kmp(
-            |s| self.0.as_ref().chars().flat_map(lookup).skip(s),
-            |s| pattern.0.as_ref().chars().flat_map(lookup).skip(s)
-        )
+        let left = self.0.as_ref().chars().flat_map(lookup);
+        let right = pattern.0.as_ref().chars().flat_map(lookup);
+        contains_kmp(left, right)
     }
 }
 

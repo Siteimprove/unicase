@@ -1,20 +1,19 @@
 // Compare two iterators to check if the needle is contained in the haystack.
 // Because iteration has to be restarted, the caller must provide two factory
 // functions that can skip to the provided offset.
-pub fn contains_kmp<F1, F2, I: Iterator<Item=char> + Clone>(haystack: F1, needle: F2) -> bool
-where F1 : Fn(usize) -> I, F2 : Fn(usize) -> I {
-    let mut left = haystack(0);
-    let mut right = needle(0);
+pub fn contains_kmp<I: Iterator<Item=char> + Clone>(left: I, mut right: I) -> bool {
+    let mut left = left.peekable();
 
     // Consume the first needle character
     let first = match right.next() {
         None => return true,
         Some(c) => c
     };
-    
-    let mut next_possible_start: usize;
-    let mut i = 0;
 
+    let right_restart = right.clone();
+
+    let mut restart: Option<core::iter::Peekable<I>>;
+    
     loop {
         // Consume left until a char matches the 1st needle char
         let x = match left.next() {
@@ -22,14 +21,11 @@ where F1 : Fn(usize) -> I, F2 : Fn(usize) -> I {
             Some(c) => c
         };
 
-        i += 1;
-
         if x != first {
             continue;
         }
 
-        let mut ix = 0;
-        next_possible_start = 0;
+        restart = None;
 
         loop {
             let y = match right.next() {
@@ -37,25 +33,29 @@ where F1 : Fn(usize) -> I, F2 : Fn(usize) -> I {
                 Some(c) => c
             };
 
+            // If the next char in haystack is a starting char, and we haven't seen
+            // a starting char already, clone the iterator in its current state so
+            // we can use it as a restart point.
+            if let Some(nxt) = left.peek() {
+                if *nxt == first && restart.is_none() {
+                    restart = Some(left.clone());
+                }
+            }
+
             let x = match left.next() {
                 None => return false, // end of haystack -> we still have some needle left
                 Some(c) => c
             };
 
-            ix += 1;
-
-            if x == first && next_possible_start == 0 {
-                next_possible_start = ix;
-            }
-
             if y == x {
                 continue;
             }
 
-            // Overwrite the two iterators, needle from the top (except the first char)
-            // and haystack from the last seen starting point of a potential match
-            left = haystack(i + next_possible_start - 1);
-            right = needle(1);
+            // We need to resume iteration at the relevant starting point. Haystack
+            // from the first starting character we saw or its current point, and
+            // needle from the 2nd character in the string.
+            left = restart.unwrap_or(left);
+            right = right_restart.clone();
 
             break;
         }
