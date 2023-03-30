@@ -74,6 +74,7 @@ use self::unicode::Unicode;
 
 mod ascii;
 mod unicode;
+mod utils;
 
 /// Case Insensitive wrapper of strings.
 #[derive(Clone, Copy)]
@@ -100,6 +101,21 @@ pub fn eq<S: AsRef<str> + ?Sized>(left: &S, right: &S) -> bool {
 #[inline]
 pub fn eq_ascii<S: AsRef<str> + ?Sized>(left: &S, right: &S) -> bool {
     Ascii(left) == Ascii(right)
+}
+
+#[inline]
+pub fn starts_with<S: AsRef<str> + ?Sized>(left: &S, right: &S) -> bool {
+    UniCase::new(left).starts_with(&UniCase::new(right))
+}
+
+#[inline]
+pub fn ends_with<S: AsRef<str> + ?Sized>(left: &S, right: &S) -> bool {
+    UniCase::new(left).ends_with(&UniCase::new(right))
+}
+
+#[inline]
+pub fn contains<S: AsRef<str> + ?Sized>(left: &S, right: &S) -> bool {
+    UniCase::new(left).contains(&UniCase::new(right))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -190,6 +206,35 @@ impl<S> UniCase<S> {
         match self.0 {
             Encoding::Ascii(s) => s.0,
             Encoding::Unicode(s) => s.0,
+        }
+    }
+}
+
+impl<S: AsRef<str>> UniCase<S> {
+    pub fn starts_with(&self, other: &Self) -> bool {
+        match (&self.0, &other.0) {
+            (Encoding::Unicode(ref s1), Encoding::Unicode(ref s2)) => s1.starts_with(s2),
+            (Encoding::Ascii(ref s1), Encoding::Ascii(ref s2)) => s1.starts_with(s2),
+            (Encoding::Unicode(ref s1), Encoding::Ascii(ref s2)) => s1.starts_with(&Unicode(s2.0.as_ref())),
+            (Encoding::Ascii(ref s1), Encoding::Unicode(ref s2)) => Unicode(s1.0.as_ref()).starts_with(s2)
+        }
+    }
+
+    pub fn ends_with(&self, other: &Self) -> bool {
+        match (&self.0, &other.0) {
+            (Encoding::Unicode(ref s1), Encoding::Unicode(ref s2)) => s1.ends_with(s2),
+            (Encoding::Ascii(ref s1), Encoding::Ascii(ref s2)) => s1.ends_with(s2),
+            (Encoding::Unicode(ref s1), Encoding::Ascii(ref s2)) => s1.ends_with(&Unicode(s2.0.as_ref())),
+            (Encoding::Ascii(ref s1), Encoding::Unicode(ref s2)) => Unicode(s1.0.as_ref()).ends_with(s2)
+        }
+    }
+
+    pub fn contains(&self, other: &Self) -> bool {
+        match (&self.0, &other.0) {
+            (Encoding::Unicode(ref s1), Encoding::Unicode(ref s2)) => s1.contains(s2),
+            (Encoding::Ascii(ref s1), Encoding::Ascii(ref s2)) => s1.contains(s2),
+            (Encoding::Unicode(ref s1), Encoding::Ascii(ref s2)) => s1.contains(&Unicode(s2.0.as_ref())),
+            (Encoding::Ascii(ref s1), Encoding::Unicode(ref s2)) => Unicode(s1.0.as_ref()).contains(s2)
         }
     }
 }
@@ -390,6 +435,152 @@ mod tests {
         assert!(b != a);
     }
 
+    #[test]
+    fn test_startswith_unicode() {
+        let a = UniCase::unicode("æble");
+        let b = UniCase::unicode("Æ");
+        assert!(a.starts_with(&b));
+    }
+
+    #[test]
+    fn test_startswith_unicode_neg() {
+        let a = UniCase::unicode("fæ");
+        let b = UniCase::unicode("Æ");
+        assert!(!a.starts_with(&b));
+    }
+
+    #[test]
+    fn test_startswith_unicode_longer_pattern() {
+        let a = UniCase::unicode("fÆ");
+        let b = UniCase::unicode("fææææ");
+        assert!(!a.starts_with(&b));
+    }
+
+    #[test]
+    fn test_endswith_unicode() {
+        let a = UniCase::unicode("fæ");
+        let b = UniCase::unicode("Æ");
+        assert!(a.ends_with(&b));
+    }
+
+    #[test]
+    fn test_endswith_unicode_neg() {
+        let a = UniCase::unicode("fæ");
+        let b = UniCase::unicode("F");
+        assert!(!a.ends_with(&b));
+    }
+
+    #[test]
+    fn test_endswith_unicode_longer_pattern() {
+        let a = UniCase::unicode("FÅR");
+        let b = UniCase::unicode("fååår");
+        assert!(!a.ends_with(&b));
+    }
+
+    #[test]
+    fn test_contains_unicode() {
+        let a = UniCase::unicode("foobar");
+        let b = UniCase::unicode("OBA");
+        assert!(a.contains(&b));
+    }
+
+    #[test]
+    fn test_contains_unicode_overlapping_pattern() {
+        let a = UniCase::unicode("mmome");
+        let b = UniCase::unicode("mOm");
+        assert!(a.contains(&b));
+    }
+
+    #[test]
+    fn test_contains_unicode_neg() {
+        let a = UniCase::unicode("foobar");
+        let b = UniCase::unicode("OBAN");
+        assert!(!a.contains(&b));
+    }
+
+    #[test]
+    fn test_contains_unicode_long_pattern() {
+        let a = UniCase::unicode("foobar");
+        let b = UniCase::unicode("fooooooooooooooooooooooooooooooooooooo");
+        assert!(!a.contains(&b));
+    }
+
+    #[test]
+    fn test_contains_ascii() {
+        let a = UniCase::ascii("mmome");
+        let b = UniCase::ascii("mOm");
+        assert!(a.contains(&b));
+    }
+
+    #[test]
+    fn test_contains_unicase_full_match() {
+        let x = UniCase::new("foobar");
+        let y = UniCase::new("FOOBAR");
+        assert!(x.contains(&y));
+    }
+
+    #[test]
+    fn test_contains_unicase() {
+        let x = UniCase::new("foobar");
+        let y = UniCase::new("ob");
+        assert!(x.contains(&y));
+    }
+
+    #[test]
+    fn test_startswith_unicase_unicode() {
+        let a = UniCase::new("FÅR");
+        let b = UniCase::new("får");
+        assert!(a.starts_with(&b));
+    }
+
+    #[test]
+    fn test_startswith_unicase_ascii_unicode() {
+        let a = UniCase::new("FAR");
+        let b = UniCase::new("far");
+        assert!(a.starts_with(&b));
+    }
+
+    #[test]
+    fn test_endswith_unicase_ascii_unicode() {
+        let a = UniCase::new("FAR");
+        let b = UniCase::new("far");
+        assert!(a.ends_with(&b));
+    }
+
+    #[test]
+    fn test_contains_finds_suffix() {
+        let a = UniCase::unicode("ccbaab");
+        let b = UniCase::unicode("baab");
+        assert!(a.contains(&b));
+    }
+
+    #[test]
+    fn test_contains_mfla() {
+        let a = UniCase::unicode("abababc");
+        let b = UniCase::unicode("ababc");
+        assert!(a.contains(&b));
+    }
+
+    #[cfg(feature = "nightly")]
+    #[bench]
+    fn bench_unicode_contains(b: &mut ::test::Bencher) {
+        let x = UniCase::unicode("foobarfoxydog");
+        let y = UniCase::unicode("arfoxyd");
+        b.iter(|| assert!(x.contains(&y)));
+    }
+
+    #[cfg(feature = "nightly")]
+    #[bench]
+    fn bench_unicode_contains_worst_case(b: &mut ::test::Bencher) {
+        let input = String::from_utf8(vec![b'X'; 200]).unwrap();
+        b.bytes = input.len() as u64;
+        let mut pattern = input.clone();
+        pattern.push('y');
+        let x = UniCase::unicode(&input);
+        let y = UniCase::unicode(&pattern);
+        b.iter(|| assert!(!x.contains(&y)));
+    }
+
     #[cfg(feature = "nightly")]
     #[bench]
     fn bench_unicase_ascii(b: &mut ::test::Bencher) {
@@ -397,6 +588,15 @@ mod tests {
         let x = UniCase::new("foobar");
         let y = UniCase::new("FOOBAR");
         b.iter(|| assert_eq!(x, y));
+    }
+
+    #[cfg(feature = "nightly")]
+    #[bench]
+    fn bench_ascii_contains(b: &mut ::test::Bencher) {
+        b.bytes = b"foobar".len() as u64;
+        let x = UniCase::new("foobar");
+        let y = UniCase::new("FOOBAR");
+        b.iter(|| x.contains(&y));
     }
 
     #[cfg(feature = "nightly")]

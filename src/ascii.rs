@@ -10,6 +10,7 @@ use core::str::FromStr;
 use std::ascii::AsciiExt;
 
 use super::{Ascii, Encoding, UniCase};
+use super::utils::{contains_kmp, compare_iters};
 
 impl<S> Ascii<S> {
     #[inline]
@@ -43,6 +44,28 @@ impl<S> Ascii<S> {
     }
 }
 
+impl<S: AsRef<str>> Ascii<S> {
+    pub fn starts_with<S2 : AsRef<str>>(&self, pattern: &Ascii<S2>) -> bool {
+        let mut left = self.0.as_ref().chars().map(to_lower_ascii);
+        let mut right = pattern.0.as_ref().chars().map(to_lower_ascii);
+        compare_iters(&mut left, &mut right, true)
+    }
+
+    #[allow(unused)]
+    pub fn ends_with<S2 : AsRef<str>>(&self, pattern: &Ascii<S2>) -> bool {
+        let mut left = self.0.as_ref().chars().rev().map(to_lower_ascii);
+        let mut right = pattern.0.as_ref().chars().rev().map(to_lower_ascii);
+        compare_iters(&mut left, &mut right, true)
+    }
+
+    #[allow(unused)]
+    pub fn contains<S2 : AsRef<str>>(&self, pattern: &Ascii<S2>) -> bool {
+        let left = self.0.as_ref().chars().map(to_lower_ascii);
+        let right = pattern.0.as_ref().chars().map(to_lower_ascii);
+        contains_kmp(left, right)
+    }
+}
+
 impl<S> Deref for Ascii<S> {
     type Target = S;
     #[inline]
@@ -70,8 +93,8 @@ impl<T: AsRef<str>> PartialOrd for Ascii<T> {
 impl<T: AsRef<str>> Ord for Ascii<T> {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
-        let self_chars = self.as_ref().chars().map(|c| c.to_ascii_lowercase());
-        let other_chars = other.as_ref().chars().map(|c| c.to_ascii_lowercase());
+        let self_chars = self.as_ref().chars().map(to_lower_ascii);
+        let other_chars = other.as_ref().chars().map(to_lower_ascii);
         self_chars.cmp(other_chars)
     }
 }
@@ -128,6 +151,11 @@ impl<S: AsRef<str>> Hash for Ascii<S> {
             hasher.write_u8(byte);
         }
     }
+}
+
+#[inline]
+fn to_lower_ascii(orig: char) -> char {
+    orig.to_ascii_lowercase()
 }
 
 #[cfg(test)]
